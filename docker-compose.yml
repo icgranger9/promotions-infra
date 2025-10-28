@@ -1,0 +1,96 @@
+version: "3.8"
+
+services:
+  # # ----------------------------------------
+  # # Zookeeper (Required for Kafka < 3.0)
+  # # ----------------------------------------
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:7.6.0
+  #   container_name: zookeeper
+  #   hostname: zookeeper
+  #   ports:
+  #     - "2181:2181"
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #     ZOOKEEPER_TICK_TIME: 2000
+
+  # # ----------------------------------------
+  # # Kafka Broker
+  # # ----------------------------------------
+  # kafka:
+  #   image: confluentinc/cp-kafka:7.6.0
+  #   container_name: kafka
+  #   hostname: kafka
+  #   ports:
+  #     # Expose 9092 to the host machine for local Spring Boot apps to connect
+  #     - "9092:9092"
+  #   depends_on:
+  #     - zookeeper
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     # Listener for outside containers (your Spring Boot apps running on the host)
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+  #     KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+  #     KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  # ----------------------------------------
+  # Apache Cassandra Database (CQL Port: 9042)
+  # ----------------------------------------
+  cassandra_db:
+    image: cassandra:4.1
+    container_name: cassandra_db
+    ports:
+      # Standard CQL port
+      - "9042:9042"
+    environment:
+      # Optional: set cluster name
+      CASSANDRA_CLUSTER_NAME: "Promotions_Message_Cluster"
+      # Optional: disable authentication for local dev
+      CASSANDRA_AUTHENTICATOR: AllowAllAuthenticator
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+
+  # # ----------------------------------------
+  # # Redis Cache (In-memory key/value store)
+  # # ----------------------------------------
+  # redis_cache:
+  #   image: redis:7.0-alpine
+  #   container_name: redis_cache
+  #   hostname: redis_cache
+  #   ports:
+  #     # Standard Redis port
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data # Mount data volume for persistence
+
+  # # ----------------------------------------
+  # # API Service (The Kafka Producer Application)
+  # # ----------------------------------------
+  # kafka_producer_api:
+  #   # Tells Docker Compose to find the Dockerfile in the current context (`.`)
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: kafka_producer_api
+  #   # Expose the Spring Boot application's default port 8080
+  #   ports:
+  #     - "8080:8080"
+  #   # Ensure Kafka and Redis are running before attempting to start the API
+  #   depends_on:
+  #     - kafka
+  #     - redis_cache
+  #   environment:
+  #     # IMPORTANT: When running inside Docker Compose, use the service names
+  #     # for connectivity, not 'localhost'. Kafka uses the INTERNAL listener (29092).
+  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  #     SPRING_DATA_REDIS_HOST: redis_cache
+  #     SPRING_DATA_REDIS_PORT: 6379
+
+volumes:
+  cassandra_data:
+  redis_data:
